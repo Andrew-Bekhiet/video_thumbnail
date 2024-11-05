@@ -3,8 +3,8 @@ description: A flutter plugin for creating a thumbnail from a local video file o
 version: 0.6.2
 repository: https://github.com/Alberto-Monteiro/video_thumbnail
 
-environment: 
-  sdk: '>=3.4.3 <4.0.0'
+environment:
+  sdk: ">=3.4.3 <4.0.0"
 
 dependencies:
   flutter:
@@ -13,7 +13,6 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
   plugin_platform_interface: ^2.1.3
-
 
 dependency_overrides:
   web: ^1.0.0
