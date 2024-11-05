@@ -1,7 +1,7 @@
 name: video_thumbnail_example
 description: Demonstrates how to use the video_thumbnail plugin.
 version: 0.0.1
-publish_to: 'none'
+publish_to: "none"
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -13,7 +13,6 @@ dependencies:
   path_provider: ^2.1.0
   get_thumbnail_video:
     path: ../
-  ffmpeg_kit_flutter: ^6.0.3
 
 dev_dependencies:
   flutter_test:
