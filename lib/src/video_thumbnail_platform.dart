@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cross_file/cross_file.dart';
 import 'package:get_thumbnail_video/src/image_format.dart';
+import 'package:get_thumbnail_video/src/video_thumbnail_config.dart';
 import 'package:get_thumbnail_video/src/video_thumbnail_method_channel.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -26,16 +27,9 @@ abstract class VideoThumbnailPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<List<XFile>> thumbnailFiles({
-    required List<String> videos,
-    required Map<String, String>? headers,
-    required String? thumbnailPath,
-    required ImageFormat imageFormat,
-    required int maxHeight,
-    required int maxWidth,
-    int? timeMs,
-    required int quality,
-  }) {
+  Future<List<XFile>> thumbnailFiles(
+    List<({String videoPath, VideoThumbnailConfig config})> videosAndConfigs,
+  ) {
     throw UnimplementedError('thumbnailFiles() has not been implemented.');
   }
 

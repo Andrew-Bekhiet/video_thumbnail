@@ -5,7 +5,7 @@ import 'dart:math' as math;
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
-import 'package:get_thumbnail_video/src/image_format.dart';
+import 'package:get_thumbnail_video/index.dart';
 import 'package:get_thumbnail_video/src/video_thumbnail_platform.dart';
 
 // An error code value to error name Map.
@@ -41,28 +41,21 @@ class VideoThumbnailWeb extends VideoThumbnailPlatform {
   }
 
   @override
-  Future<List<XFile>> thumbnailFiles({
-    required List<String> videos,
-    required Map<String, String>? headers,
-    required String? thumbnailPath,
-    required ImageFormat imageFormat,
-    required int maxHeight,
-    required int maxWidth,
-    int? timeMs,
-    required int quality,
-  }) async {
+  Future<List<XFile>> thumbnailFiles(
+    List<({String videoPath, VideoThumbnailConfig config})> videosAndConfigs,
+  ) async {
     final blobs = <Blob>[];
 
-    for (final video in videos) {
+    for (final entry in videosAndConfigs) {
       blobs.add(
         await _createThumbnail(
-          videoSrc: video,
-          headers: headers,
-          imageFormat: imageFormat,
-          maxHeight: maxHeight,
-          maxWidth: maxWidth,
-          timeMs: timeMs ?? 0,
-          quality: quality,
+          videoSrc: entry.videoPath,
+          headers: entry.config.headers,
+          imageFormat: entry.config.imageFormat,
+          maxHeight: entry.config.maxHeight ?? 10,
+          maxWidth: entry.config.maxWidth ?? 10,
+          timeMs: entry.config.timeMs ?? 0,
+          quality: entry.config.quality ?? 10,
         ),
       );
     }

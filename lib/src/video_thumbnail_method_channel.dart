@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:get_thumbnail_video/src/image_format.dart';
+import 'package:get_thumbnail_video/index.dart';
 import 'package:get_thumbnail_video/src/video_thumbnail_platform.dart';
 
 /// An implementation of [VideoThumbnailPlatform] that uses method channels.
@@ -96,52 +96,22 @@ class MethodChannelVideoThumbnail extends VideoThumbnailPlatform {
           : timeMs ?? 0;
 
   @override
-  Future<List<XFile>> thumbnailFiles({
-    required List<String> videos,
-    required Map<String, String>? headers,
-    required String? thumbnailPath,
-    required ImageFormat imageFormat,
-    required int maxHeight,
-    required int maxWidth,
-    int? timeMs,
-    required int quality,
-  }) async {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      final results = <XFile>[];
-
-      for (final video in videos) {
-        results.add(
-          await thumbnailFile(
-            video: video,
-            headers: headers,
-            thumbnailPath: thumbnailPath,
-            imageFormat: imageFormat,
-            maxHeight: maxHeight,
-            maxWidth: maxWidth,
-            timeMs: timeMs,
-            quality: quality,
-          ),
-        );
-      }
-
-      return results;
-    }
-
+  Future<List<XFile>> thumbnailFiles(
+    List<({String videoPath, VideoThumbnailConfig config})> videosAndConfigs,
+  ) async {
     final (completer, callId) = _createCompleterAndCallId<List<XFile>>();
 
-    final reqMap = <String, dynamic>{
-      'callId': callId,
-      'videos': videos,
-      'headers': headers,
-      'path': thumbnailPath,
-      'format': imageFormat.index,
-      'maxh': maxHeight,
-      'maxw': maxWidth,
-      'timeMs': _getTimeMsValue(timeMs),
-      'quality': quality
-    };
-
-    final result = await methodChannel.invokeMethod('files', reqMap);
+    final result = await methodChannel.invokeMethod(
+      'files',
+      {
+        'callId': callId,
+        'data': videosAndConfigs
+            .map(
+              (e) => [e.videoPath, e.config.toMap()],
+            )
+            .toList()
+      },
+    );
 
     if (result != true) {
       _resolveFuture(callId, result);

@@ -25,32 +25,50 @@
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
     
-    NSDictionary *_args = call.arguments;
-    
-    NSString *file = _args[@"video"];
-
-    NSMutableDictionary * headers = _args[@"headers"];
-
-    NSString *path = _args[@"path"];
-    int format = [[_args objectForKey:@"format"] intValue];
-    int maxh = [[_args objectForKey:@"maxh"] intValue];
-    int maxw = [[_args objectForKey:@"maxw"] intValue];
-    int timeMs = [[_args objectForKey:@"timeMs"] intValue];
-    int quality = [[_args objectForKey:@"quality"] intValue];
-    _args = nil;
-    bool isLocalFile = [file hasPrefix:@"file://"] || [file hasPrefix:@"/"];
-    
-    NSURL *url = [file hasPrefix:@"file://"] ? [NSURL fileURLWithPath:[file substringFromIndex:7]] :
-      ( [file hasPrefix:@"/"] ? [NSURL fileURLWithPath:file] : [NSURL URLWithString:file] );
-    
     if ([@"data" isEqualToString:call.method]) {
+        NSDictionary *_args = call.arguments;
+        
+        NSString *file = _args[@"video"];
 
+        NSMutableDictionary * headers = _args[@"headers"];
+
+        NSString *path = _args[@"path"];
+        int format = [[_args objectForKey:@"format"] intValue];
+        int maxh = [[_args objectForKey:@"maxh"] intValue];
+        int maxw = [[_args objectForKey:@"maxw"] intValue];
+        int timeMs = [[_args objectForKey:@"timeMs"] intValue];
+        int quality = [[_args objectForKey:@"quality"] intValue];
+        _args = nil;
+        bool isLocalFile = [file hasPrefix:@"file://"] || [file hasPrefix:@"/"];
+        
+        NSURL *url = [file hasPrefix:@"file://"] ? [NSURL fileURLWithPath:[file substringFromIndex:7]] :
+        ( [file hasPrefix:@"/"] ? [NSURL fileURLWithPath:file] : [NSURL URLWithString:file] );
+        
         dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void){
             //Background Thread
             result([VideoThumbnailPlugin generateThumbnail:url headers:headers format:format maxHeight:maxh maxWidth:maxw timeMs:timeMs quality:quality]);
         });
         
     } else if ([@"file" isEqualToString:call.method]) {
+        NSDictionary *_args = call.arguments;
+    
+        NSString *file = _args[@"video"];
+
+        NSMutableDictionary * headers = _args[@"headers"];
+
+        NSString *path = _args[@"path"];
+        int format = [[_args objectForKey:@"format"] intValue];
+        int maxh = [[_args objectForKey:@"maxh"] intValue];
+        int maxw = [[_args objectForKey:@"maxw"] intValue];
+        int timeMs = [[_args objectForKey:@"timeMs"] intValue];
+        int quality = [[_args objectForKey:@"quality"] intValue];
+        _args = nil;
+        bool isLocalFile = [file hasPrefix:@"file://"] || [file hasPrefix:@"/"];
+        
+        NSURL *url = [file hasPrefix:@"file://"] ? [NSURL fileURLWithPath:[file substringFromIndex:7]] :
+        ( [file hasPrefix:@"/"] ? [NSURL fileURLWithPath:file] : [NSURL URLWithString:file] );
+    
+
         if( [path isEqual:[NSNull null]] && !isLocalFile ) {
             path = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
         }
@@ -88,6 +106,66 @@
             }
         });
         
+    } else if ([@"files" isEqualToString:call.method]) {
+        NSDictionary *args = call.arguments;
+        int callId = [args[@"callId"] intValue];
+        NSArray *data = args[@"data"];
+        NSMutableArray *results = [NSMutableArray array];
+        
+        for( NSArray *videoAndConfig in data ) {
+            NSString *file = videoAndConfig[0];
+            NSDictionary *_args = videoAndConfig[1];
+
+            NSMutableDictionary * headers = _args[@"headers"];
+
+            NSString *path = _args[@"path"];
+            int format = [[_args objectForKey:@"format"] intValue];
+            int maxh = [[_args objectForKey:@"maxh"] intValue];
+            int maxw = [[_args objectForKey:@"maxw"] intValue];
+            int timeMs = [[_args objectForKey:@"timeMs"] intValue];
+            int quality = [[_args objectForKey:@"quality"] intValue];
+            bool isLocalFile = [file hasPrefix:@"file://"] || [file hasPrefix:@"/"];
+            
+            NSURL *url = [file hasPrefix:@"file://"] ? [NSURL fileURLWithPath:[file substringFromIndex:7]] :
+            ( [file hasPrefix:@"/"] ? [NSURL fileURLWithPath:file] : [NSURL URLWithString:file] );
+
+            if( [path isEqual:[NSNull null]] && !isLocalFile ) {
+                path = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
+            }
+            
+            dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void){
+                //Background Thread
+                
+                NSData *data = [VideoThumbnailPlugin generateThumbnail:url headers:headers format:format maxHeight:maxh maxWidth:maxw timeMs:timeMs quality:quality];
+                NSString *ext = ( (format == 0 ) ? @"jpg" : ( format == 1 ) ? @"png" : @"webp" );
+                NSURL *thumbnail = [[url URLByDeletingPathExtension] URLByAppendingPathExtension:ext];
+                
+                if(path && [path isKindOfClass:[NSString class]] && path.length>0) {
+                    NSString *lastPart = [thumbnail lastPathComponent];
+                    thumbnail = [NSURL fileURLWithPath:path];
+                    if( ![[thumbnail pathExtension] isEqualToString:ext] ) {
+                        thumbnail = [thumbnail URLByAppendingPathComponent:lastPart];
+                    }
+                }
+                NSError *error = nil;
+                if( [data writeToURL:thumbnail options:0 error:&error] != YES ) {
+                    if( error != nil ) {
+                        [results addObject:[FlutterError errorWithCode:[NSString stringWithFormat:@"Error %ld", error.code]
+                                                                message:error.domain
+                                                                details:error.localizedDescription]];
+                    } else [results addObject:[FlutterError errorWithCode:@"IO Error" message:@"Failed to write data to file" details:nil]];
+                } else {
+                    NSString *fullpath = [thumbnail absoluteString];
+                    if([fullpath hasPrefix:@"file://"]) {
+                        [results addObject:[fullpath substringFromIndex:7]];
+                    }
+                    else {
+                        [results addObject:fullpath];
+                    }
+                }
+            });
+        }
+        result(results);
     } else {
         result(FlutterMethodNotImplemented);
     }

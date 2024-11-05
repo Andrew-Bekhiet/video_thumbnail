@@ -13,6 +13,7 @@ import 'dart:async';
 import 'package:cross_file/cross_file.dart';
 import 'package:flutter/services.dart';
 import 'package:get_thumbnail_video/src/image_format.dart';
+import 'package:get_thumbnail_video/src/video_thumbnail_config.dart';
 import 'package:get_thumbnail_video/src/video_thumbnail_platform.dart';
 
 export 'package:cross_file/cross_file.dart' show XFile;
@@ -23,28 +24,12 @@ class VideoThumbnail {
   /// If the thumbnailPath is ommited or null, a thumbnail image file will be created under the same folder as the video file.
   /// Specify the maximum height or width for the thumbnail or 0 for same resolution as the original video.
   /// The lower quality value creates lower quality of the thumbnail image, but it gets ignored for PNG format.
-  static Future<List<XFile>> thumbnailFiles({
-    required List<String> videos,
-    Map<String, String>? headers,
-    String? thumbnailPath,
-    ImageFormat imageFormat = ImageFormat.PNG,
-    int maxHeight = 0,
-    int maxWidth = 0,
-    int? timeMs,
-    int quality = 10,
-  }) async {
-    if (videos.isEmpty) return [];
+  static Future<List<XFile>> thumbnailFiles(
+    List<({String videoPath, VideoThumbnailConfig config})> videosAndConfigs,
+  ) async {
+    if (videosAndConfigs.isEmpty) return [];
 
-    return VideoThumbnailPlatform.instance.thumbnailFiles(
-      videos: videos,
-      headers: headers,
-      thumbnailPath: thumbnailPath,
-      imageFormat: imageFormat,
-      maxHeight: maxHeight,
-      maxWidth: maxWidth,
-      timeMs: timeMs,
-      quality: quality,
-    );
+    return VideoThumbnailPlatform.instance.thumbnailFiles(videosAndConfigs);
   }
 
   /// Generates a thumbnail file under specified thumbnail folder or given full path and name which matches expected ext.
