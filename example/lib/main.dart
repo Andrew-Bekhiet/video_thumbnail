@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:developer';
+import 'dart:io';
 
+import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter/ffmpeg_kit_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:get_thumbnail_video/index.dart';
 import 'package:get_thumbnail_video/video_thumbnail.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 void main() => runApp(const MyApp());
 
@@ -60,25 +65,64 @@ Future<ThumbnailResult> genThumbnail(ThumbnailRequest r) async {
   Uint8List bytes;
   final completer = Completer<ThumbnailResult>();
   if (r.thumbnailPath != null) {
-    final thumbnailFile = await VideoThumbnail.thumbnailFile(
-      video: r.video,
-      headers: r.attachHeaders
-          ? const {
-              'USERHEADER1': 'user defined header1',
-              'USERHEADER2': 'user defined header2',
-            }
-          : null,
-      thumbnailPath: r.thumbnailPath,
-      imageFormat: r.imageFormat,
-      maxHeight: r.maxHeight,
-      maxWidth: r.maxWidth,
-      timeMs: r.timeMs,
-      quality: r.quality,
+    final thumbnailPath = p.join(
+      r.thumbnailPath!,
+      '${p.basenameWithoutExtension(r.video)}.jpg',
     );
+    await FFmpegKitConfig.setSessionHistorySize(35);
 
-    debugPrint('thumbnail file is located: $thumbnailFile');
+    final stopwatch = Stopwatch()..start();
+    final completers = List.generate(35, (i) => Completer());
+    for (int i = 0; i < 35; i++) {
+      await FFmpegKit.executeAsync(
+        '-y'
+        ' -i ${r.video}'
+        ' -ss ${r.timeMs}'
+        ' -vframes 1'
+        ' ${r.maxHeight > 0 && r.maxWidth > 0 ? '-vf "scale=${r.maxWidth}:${r.maxHeight}"' : ''}'
+        ' -q:v ${r.quality / 100}'
+        ' ${p.join(
+          r.thumbnailPath!,
+          '${p.basenameWithoutExtension(r.video)}$i.jpg',
+        )}',
+        completers[i].complete,
+      );
+    }
+    await Future.wait(completers.map((c) => c.future));
+    // final Set<Completer> completed = {};
 
-    bytes = await thumbnailFile.readAsBytes();
+    // for (int i = 10; i < 35; i++) {
+    //   final firstCompleted = await Future.any(
+    //     completers.where((e) => !completed.contains(e)).map(
+    //       (c) async {
+    //         await c.future;
+    //         return c;
+    //       },
+    //     ),
+    //   );
+    //   completed.add(firstCompleted);
+
+    //   await FFmpegKit.executeAsync(
+    //     '-y'
+    //     ' -i ${r.video}'
+    //     ' -ss ${r.timeMs}'
+    //     ' -vframes 1'
+    //     ' ${r.maxHeight > 0 && r.maxWidth > 0 ? '-vf "scale=${r.maxWidth}:${r.maxHeight}"' : ''}'
+    //     ' -q:v ${r.quality / 100}'
+    //     ' ${p.join(
+    //       r.thumbnailPath!,
+    //       '${p.basenameWithoutExtension(r.video)}$i.jpg',
+    //     )}',
+    //     completers[i].complete,
+    //   );
+    // }
+    stopwatch.stop();
+    log('FFmpeg took ${stopwatch.elapsedMilliseconds}ms');
+
+    bytes = await File(thumbnailPath).readAsBytes();
+
+    // final logs = await session.getAllLogsAsString();
+    // log(logs ?? '');
   } else {
     bytes = await VideoThumbnail.thumbnailData(
       video: r.video,
@@ -453,5 +497,19 @@ class _DemoHomeState extends State<DemoHome> {
         ],
       ),
     );
+  }
+}
+
+extension Chunk<T> on List<T> {
+  List<List<T>> chunk(int chunkLength) {
+    final List<List<T>> chunks = [];
+    for (int i = 0; i < length; i++) {
+      if (i % chunkLength == 0) {
+        chunks.add(<T>[]);
+      }
+      chunks.last.add(this[i]);
+    }
+
+    return chunks;
   }
 }
