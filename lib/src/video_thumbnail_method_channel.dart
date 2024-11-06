@@ -114,7 +114,10 @@ class MethodChannelVideoThumbnail extends VideoThumbnailPlatform {
     );
 
     if (result != true) {
-      _resolveFuture(callId, result);
+      _resolveFuture(
+        callId,
+        (result as List).cast<String>().map(XFile.new).toList(),
+      );
     }
 
     return completer.future;
@@ -148,7 +151,7 @@ class MethodChannelVideoThumbnail extends VideoThumbnailPlatform {
     final result = await methodChannel.invokeMethod('file', reqMap);
 
     if (result != true) {
-      _resolveFuture(callId, result);
+      _resolveFuture(callId, XFile(result as String));
     }
 
     return completer.future;

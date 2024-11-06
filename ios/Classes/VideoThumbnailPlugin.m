@@ -111,6 +111,9 @@
         int callId = [args[@"callId"] intValue];
         NSArray *data = args[@"data"];
         NSMutableArray *results = [NSMutableArray array];
+
+        dispatch_group_t group = dispatch_group_create();
+        dispatch_queue_t resultsQueue = dispatch_queue_create("plugins.justsoft.xyz/video_thumbnail", DISPATCH_QUEUE_SERIAL);
         
         for( NSArray *videoAndConfig in data ) {
             NSString *file = videoAndConfig[0];
@@ -132,6 +135,8 @@
             if( [path isEqual:[NSNull null]] && !isLocalFile ) {
                 path = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject];
             }
+
+            dispatch_group_enter(group);
             
             dispatch_async(dispatch_get_global_queue( DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void){
                 //Background Thread
@@ -163,9 +168,15 @@
                         [results addObject:fullpath];
                     }
                 }
+
+                dispatch_group_leave(group);
             });
         }
-        result(results);
+
+        dispatch_group_notify(group, dispatch_get_main_queue(), ^{
+            NSArray *immutableResults = [NSArray arrayWithArray:results];
+            result(immutableResults);
+        });
     } else {
         result(FlutterMethodNotImplemented);
     }
